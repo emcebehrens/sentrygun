@@ -1,0 +1,36 @@
+install qt (qt-opensource-windows-x86-android-5.6.0)
+
+install opencv (opencv-3.0.0)
+www.bogotobogo.com OpenCV 3 Tutorial: with CMake & MinGw, stackoverflow.com guide
+
+add mingw to path
+
+go to opencv/sources/cmake:
+OpenCVCompilerOptions.cmake
+comment line 67: add_extra_compiler_option(-Werror=non-virtual-dtor)
+
+
+need internet acces for 3rdparty/ippicv (prob not anymore after uncheck WITH_IPP)
+
+open cmake gui: add opencv/sources as SOURCE
+add opencv/mingw (new folder) as BUILD
+
+press configure
+
+MinGW Makefiles (Use default native compilers)
+
+after configure, uncheck WITH_IPP
+
+press configure again
+
+press generate
+
+close cmake
+
+command line: into new BUILD folder
+
+run mingw32-make
+run mingw32-make install
+
+add opencv/mingw/bin to environment folder
+
