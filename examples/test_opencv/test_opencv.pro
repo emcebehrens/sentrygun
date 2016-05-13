@@ -13,26 +13,27 @@ TEMPLATE = app
 
 INCLUDEPATH += "../../libraries/opencv/mingw/install/include"
 
-LIBS += "c:\gtdev\turret_development\libraries\opencv\mingw\bin\libopencv_core300.dll"
-LIBS += "c:\gtdev\turret_development\libraries\opencv\mingw\bin\libopencv_highgui300.dll"
-LIBS += "c:\gtdev\turret_development\libraries\opencv\mingw\bin\libopencv_imgproc300.dll"
-LIBS += "c:\gtdev\turret_development\libraries\opencv\mingw\bin\libopencv_calib3d300.dll"
-LIBS += "c:\gtdev\turret_development\libraries\opencv\mingw\bin\libopencv_imgcodecs300.dll"
-LIBS += "c:\gtdev\turret_development\libraries\opencv\mingw\bin\libopencv_features2d300.dll"
-LIBS += "c:\gtdev\turret_development\libraries\opencv\mingw\bin\libopencv_flann300.dll"
-LIBS += "c:\gtdev\turret_development\libraries\opencv\mingw\bin\libopencv_imgproc300.dll"
-LIBS += "c:\gtdev\turret_development\libraries\opencv\mingw\bin\libopencv_ml300.dll"
-LIBS += "c:\gtdev\turret_development\libraries\opencv\mingw\bin\libopencv_objdetect300.dll"
-LIBS += "c:\gtdev\turret_development\libraries\opencv\mingw\bin\libopencv_photo300.dll"
-LIBS += "c:\gtdev\turret_development\libraries\opencv\mingw\bin\libopencv_shape300.dll"
-LIBS += "c:\gtdev\turret_development\libraries\opencv\mingw\bin\libopencv_stitching300.dll"
-LIBS += "c:\gtdev\turret_development\libraries\opencv\mingw\bin\libopencv_superres300.dll"
-LIBS += "c:\gtdev\turret_development\libraries\opencv\mingw\bin\libopencv_video300.dll"
-LIBS += "c:\gtdev\turret_development\libraries\opencv\mingw\bin\libopencv_videoio300.dll"
-LIBS += "c:\gtdev\turret_development\libraries\opencv\mingw\bin\libopencv_videostab300.dll"
-LIBS += "c:\gtdev\turret_development\libraries\opencv\mingw\bin\opencv_ffmpeg300.dll"
+#LIBOPENCV = $$PWD\libraries\opencv\mingw\bin
+LIBOPENCV = "c:\gtdev\software\turret_development\libraries\opencv\mingw\bin"
+LIBS += $$LIBOPENCV/libopencv_core310.dll
+LIBS += $$LIBOPENCV/libopencv_highgui310.dll
+LIBS += $$LIBOPENCV/libopencv_imgproc310.dll
+LIBS += $$LIBOPENCV/libopencv_calib3d310.dll
+LIBS += $$LIBOPENCV/libopencv_imgcodecs310.dll
+LIBS += $$LIBOPENCV/libopencv_features2d310.dll
+LIBS += $$LIBOPENCV/libopencv_flann310.dll
+LIBS += $$LIBOPENCV/libopencv_ml310.dll
+LIBS += $$LIBOPENCV/libopencv_objdetect310.dll
+LIBS += $$LIBOPENCV/libopencv_photo310.dll
+LIBS += $$LIBOPENCV/libopencv_shape310.dll
+LIBS += $$LIBOPENCV/libopencv_stitching310.dll
+LIBS += $$LIBOPENCV/libopencv_superres310.dll
+LIBS += $$LIBOPENCV/libopencv_video310.dll
+LIBS += $$LIBOPENCV/libopencv_videoio310.dll
+LIBS += $$LIBOPENCV/libopencv_videostab310.dll
+LIBS += $$LIBOPENCV/opencv_ffmpeg310.dll
 
-
+#QMAKE_CXXFLAGS += `pkg-config opencv --cflags --libs`
 
 SOURCES += main.cpp
 
