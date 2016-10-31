@@ -11,9 +11,22 @@ Window {
     height: 400
     //color: "transparent"
 
+    property bool controllerConnected: false
+    property real sliderTiltMin: 4000
+    property real sliderTiltMax: 8000
+    property real sliderPanMin: 4000
+    property real sliderPanMax: 8000
+
+    property real panSpeed: 0
+    property real panAcc: 0
+    property real tiltSpeed: 0
+    property real tiltAcc: 0
+
     Component.onCompleted: {
         console.log("onCompleted.. connecting signals")
         glue.sig_servoControllerState.connect(slot_servoControllerState)
+        glue.sig_havePanPosition.connect(slot_havePanPosition)
+        glue.sig_haveTiltPosition.connect(slot_haveTiltPosition)
     }
 
     function slot_servoControllerState(state) {
@@ -21,9 +34,21 @@ Window {
 
         if (state) {
             textControllerState.text = "Meastro Servo Controller is Connected"
+            controllerConnected = true
         } else {
             textControllerState.text = "No Maestro USB Servo Controller Found"
+            controllerConnected = false
         }
+    }
+
+    function slot_havePanPosition(pos) {
+        //console.log("slot_havePanPosition", pos)
+        sliderPanActualPos.value = pos
+    }
+
+    function slot_haveTiltPosition(pos) {
+        //console.log("slot_haveTiltPosition", pos)
+        sliderTiltActualPos.value = pos
     }
 
     FontLoader {
@@ -50,6 +75,7 @@ Window {
             //console.log(panSliderValue)
             glue.setPanTarget(panSliderValue)
         }
+
     }
 
     Rectangle {
@@ -87,6 +113,7 @@ Window {
 
                     Rectangle {
                         id: recTilt
+                        enabled: controllerConnected
                         width: (recMainArea.width / 2) - 10
                         height: recMainArea.height - 10
                         color: "transparent"
@@ -94,6 +121,7 @@ Window {
                         border.width: 1
                         radius: 2
                         anchors.verticalCenter: parent.verticalCenter
+                        opacity: (controllerConnected) ? 1 : 0.5
 
                         Rectangle {
                             id: recTiltTop
@@ -125,21 +153,55 @@ Window {
                                     anchors.centerIn: parent
                                     spacing: 20
 
-                                    Slider {
-                                        id: sliderTilt
-                                        orientation: Qt.Vertical
+                                    Rectangle {
                                         height: 200
-                                        value: 6000
-                                        maximumValue: 8000
-                                        minimumValue: 4000
+                                        width: 60
+                                        //color: "lightgray"
 
-                                        style: SliderStyle {
-                                                groove: Rectangle {
-                                                    color: "#07913A"
-                                                    implicitWidth: 200
-                                                    implicitHeight: 8
-                                                    radius: 8
+                                        Row {
+                                            anchors.centerIn: parent
+                                            spacing: 10
+
+                                            Slider {
+                                                id: sliderTiltActualPos
+                                                orientation: Qt.Vertical
+                                                height: 200
+                                                value: 6000
+                                                maximumValue: sliderTiltMax
+                                                minimumValue: sliderTiltMin
+
+                                                style: SliderStyle {
+                                                    groove: Rectangle {
+                                                        color: "lightgray"
+                                                        implicitWidth: 200
+                                                        implicitHeight: 1
+                                                    }
+                                                    handle: Rectangle {
+                                                        anchors.centerIn: parent
+                                                        color: "#07913A"
+                                                        implicitWidth: 2
+                                                        implicitHeight: 20
+                                                    }
                                                 }
+                                            }
+
+                                            Slider {
+                                                id: sliderTilt
+                                                orientation: Qt.Vertical
+                                                height: 200
+                                                value: 6000
+                                                maximumValue: sliderTiltMax
+                                                minimumValue: sliderTiltMin
+
+                                                style: SliderStyle {
+                                                        groove: Rectangle {
+                                                            color: "#07913A"
+                                                            implicitWidth: 200
+                                                            implicitHeight: 8
+                                                            radius: 8
+                                                        }
+                                                }
+                                            }
                                         }
                                     }
 
@@ -182,6 +244,8 @@ Window {
                                                     cursorShape: Qt.PointingHandCursor
                                                     onClicked: {
                                                         console.log("Tilt Reverse Last")
+                                                        sliderTilt.value = sliderTiltMax
+                                                        glue.setTiltTarget(sliderTilt.value)
                                                     }
                                                 }
                                             }
@@ -216,6 +280,8 @@ Window {
                                                     cursorShape: Qt.PointingHandCursor
                                                     onClicked: {
                                                         console.log("Tilt Reverse")
+                                                        sliderTilt.value = sliderTilt.value + 5
+                                                        glue.setTiltTarget(sliderTilt.value)
                                                     }
                                                 }
                                             }
@@ -239,6 +305,8 @@ Window {
                                                     cursorShape: Qt.PointingHandCursor
                                                     onClicked: {
                                                         console.log("Tilt Home")
+                                                        glue.setTiltTarget((sliderTiltMin + sliderTiltMax)/2)
+                                                        sliderTilt.value = (sliderTiltMin + sliderTiltMax)/2
                                                     }
                                                 }
                                             }
@@ -273,6 +341,8 @@ Window {
                                                     cursorShape: Qt.PointingHandCursor
                                                     onClicked: {
                                                         console.log("Tilt Forward")
+                                                        sliderTilt.value = sliderTilt.value - 5
+                                                        glue.setTiltTarget(sliderTilt.value)
                                                     }
                                                 }
                                             }
@@ -307,6 +377,8 @@ Window {
                                                     cursorShape: Qt.PointingHandCursor
                                                     onClicked: {
                                                         console.log("Tilt Forward Last")
+                                                        sliderTilt.value = sliderTiltMin
+                                                        glue.setTiltTarget(sliderTilt.value)
                                                     }
                                                 }
                                             }
@@ -326,58 +398,97 @@ Window {
                             anchors.top: recTiltTop.bottom
                             anchors.topMargin: 20
 
-                            GridLayout {
-                                columns: 4
-                                rows: 2
-                                columnSpacing: 10
+                            Column {
                                 anchors.centerIn: parent
+                                spacing: 10
+
+                                GridLayout {
+                                    columns: 4
+                                    rows: 2
+                                    columnSpacing: 10
+                                    //anchors.centerIn: parent
+                                    anchors.horizontalCenter: parent.horizontalCenter
+
+                                    Text {
+                                        text: "Speed"
+                                        font.family: basicFont.name
+                                        font.pointSize: 10
+                                    }
+                                    SpinBox {
+                                        id: spinSpeed
+                                        value: tiltSpeed
+                                        maximumValue: 400
+                                        minimumValue: 0
+                                    }
+
+                                    Text {
+                                        text: "Min Target"
+                                        font.family: basicFont.name
+                                        font.pointSize: 10
+                                    }
+                                    SpinBox {
+                                        id: spinMinTarget
+                                        value: sliderTiltMin
+                                        maximumValue: 9000
+                                        minimumValue: 0
+                                    }
+
+                                    Text {
+                                        text: "Acceleration"
+                                        font.family: basicFont.name
+                                        font.pointSize: 10
+                                    }
+                                    SpinBox {
+                                        id: spinAcc
+                                        value: tiltAcc
+                                        maximumValue: 400
+                                        minimumValue: 0
+                                    }
+
+                                    Text {
+                                        text: "Max Target"
+                                        font.family: basicFont.name
+                                        font.pointSize: 10
+                                    }
+                                    SpinBox {
+                                        id: spinMaxTarget
+                                        value: sliderTiltMax
+                                        maximumValue: 9000
+                                        minimumValue: 0
+                                    }
+
+                                }// GridLayout
 
                                 Text {
-                                    text: "Speed"
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    text: "Apply"
                                     font.family: basicFont.name
-                                    font.pointSize: 10
-                                }
-                                SpinBox {
-                                    id: spinSpeed
-                                    maximumValue: 400
-                                    minimumValue: 0
+                                    font.pointSize: 15
+                                    color: "#07913A"
 
-                                }
+                                    MouseArea{
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            console.log("Apply Tilt Settings")
 
-                                Text {
-                                    text: "Min Target"
-                                    font.family: basicFont.name
-                                    font.pointSize: 10
-                                }
-                                SpinBox {
-                                    id: spinMinTarget
-                                    value: 4000
-                                    maximumValue: 9000
-                                    minimumValue: 0
-                                }
+                                            sliderTiltMin = spinMinTarget.value
+                                            sliderTiltMax = spinMaxTarget.value
 
-                                Text {
-                                    text: "Acceleration"
-                                    font.family: basicFont.name
-                                    font.pointSize: 10
-                                }
-                                SpinBox {
-                                    id: spinAcc
-                                    maximumValue: 400
-                                    minimumValue: 0
+                                            console.log("tiltSpeed", tiltSpeed, spinSpeed.value)
+                                            if (spinSpeed.value != tiltSpeed) {
+                                                tiltSpeed = spinSpeed.value
+                                                glue.setTiltSpeed(tiltSpeed)
+                                            }
 
-                                }
-
-                                Text {
-                                    text: "Max Target"
-                                    font.family: basicFont.name
-                                    font.pointSize: 10
-                                }
-                                SpinBox {
-                                    id: spinMaxTarget
-                                    value: 8000
-                                    maximumValue: 9000
-                                    minimumValue: 0
+                                            console.log("tiltAcc", tiltAcc, spinAcc.value)
+                                            if (spinAcc.value != tiltAcc) {
+                                                tiltAcc = spinAcc.value
+                                                glue.setTiltAcceleration(tiltAcc)
+                                            }
+                                        }
+                                    }
                                 }
 
                             }
@@ -386,6 +497,7 @@ Window {
 
                     Rectangle {
                         id: recPan
+                        enabled: controllerConnected
                         width: (recMainArea.width / 2) - 10
                         height: recMainArea.height - 10
                         color: "transparent"
@@ -393,6 +505,7 @@ Window {
                         border.width: 1
                         radius: 2
                         anchors.verticalCenter: parent.verticalCenter
+                        opacity: (controllerConnected) ? 1 : 0.5
 
                         Rectangle {
                             id: recPanLeft
@@ -425,20 +538,53 @@ Window {
                                     anchors.centerIn: parent
                                     spacing: 20
 
-                                    Slider {
-                                        id: sliderPan
-                                        width: 200
-                                        value: 6000
-                                        maximumValue: 8000
-                                        minimumValue: 4000
+                                    Rectangle {
+                                        height: 60
+                                        width: recPanLeft.width
+                                       // color: "lightgray"
 
-                                        style: SliderStyle {
-                                                groove: Rectangle {
-                                                    color: "#0E6EB8"
-                                                    implicitWidth: 200
-                                                    implicitHeight: 8
-                                                    radius: 8
+                                        Column {
+                                            anchors.centerIn: parent
+                                            spacing: 10
+
+                                            Slider {
+                                                id: sliderPanActualPos
+                                                width: 200
+                                                value: 6000
+                                                maximumValue: sliderPanMax
+                                                minimumValue: sliderPanMin
+
+                                                style: SliderStyle {
+                                                    groove: Rectangle {
+                                                        color: "lightgray"
+                                                        implicitWidth: 200
+                                                        implicitHeight: 1
+                                                    }
+                                                    handle: Rectangle {
+                                                        anchors.centerIn: parent
+                                                        color: "#0E6EB8"
+                                                        implicitWidth: 2
+                                                        implicitHeight: 20
+                                                    }
                                                 }
+                                            }
+
+                                            Slider {
+                                                id: sliderPan
+                                                width: 200
+                                                value: 6000
+                                                maximumValue: sliderPanMax
+                                                minimumValue: sliderPanMin
+
+                                                style: SliderStyle {
+                                                        groove: Rectangle {
+                                                            color: "#0E6EB8"
+                                                            implicitWidth: 200
+                                                            implicitHeight: 8
+                                                            radius: 8
+                                                        }
+                                                }
+                                            }
                                         }
                                     }
 
@@ -481,6 +627,8 @@ Window {
                                                     cursorShape: Qt.PointingHandCursor
                                                     onClicked: {
                                                         console.log("Pan Reverse Last")
+                                                        sliderPan.value = sliderPanMin
+                                                        glue.setPanTarget(sliderPan.value)
                                                     }
                                                 }
                                             }
@@ -515,6 +663,8 @@ Window {
                                                     cursorShape: Qt.PointingHandCursor
                                                     onClicked: {
                                                         console.log("Pan Reverse")
+                                                        sliderPan.value = sliderPan.value - 5
+                                                        glue.setPanTarget(sliderPan.value)
                                                     }
                                                 }
                                             }
@@ -538,6 +688,8 @@ Window {
                                                     cursorShape: Qt.PointingHandCursor
                                                     onClicked: {
                                                         console.log("Pan Home")
+                                                        glue.setPanTarget((sliderPanMin + sliderPanMax)/2)
+                                                        sliderPan.value = (sliderPanMin + sliderPanMax)/2
                                                     }
                                                 }
                                             }
@@ -561,6 +713,8 @@ Window {
                                                     cursorShape: Qt.PointingHandCursor
                                                     onClicked: {
                                                         console.log("Pan Forward")
+                                                        sliderPan.value = sliderPan.value + 5
+                                                        glue.setPanTarget(sliderPan.value)
                                                     }
                                                 }
                                             }
@@ -584,6 +738,8 @@ Window {
                                                     cursorShape: Qt.PointingHandCursor
                                                     onClicked: {
                                                         console.log("Pan Forward Last")
+                                                        sliderPan.value = sliderPanMax
+                                                        glue.setPanTarget(sliderPan.value)
                                                     }
                                                 }
                                             }
@@ -603,60 +759,97 @@ Window {
                             anchors.top: parent.top
                             anchors.topMargin: 20
 
-                            GridLayout {
-                                columns: 2
-                                rows: 4
-                                columnSpacing: 10
+                            Column {
                                 anchors.centerIn: parent
+                                spacing: 10
+
+                                GridLayout {
+                                    columns: 2
+                                    rows: 4
+                                    columnSpacing: 10
+                                    anchors.horizontalCenter: parent.horizontalCenter
+
+                                    Text {
+                                        text: "Speed"
+                                        font.family: basicFont.name
+                                        font.pointSize: 10
+                                    }
+                                    SpinBox {
+                                        id: spinPanSpeed
+                                        value: panSpeed
+                                        maximumValue: 400
+                                        minimumValue: 0                            
+                                    }
+
+                                    Text {
+                                        text: "Acceleration"
+                                        font.family: basicFont.name
+                                        font.pointSize: 10
+                                    }
+                                    SpinBox {
+                                        id: spinPanAcc
+                                        value: panAcc
+                                        maximumValue: 400
+                                        minimumValue: 0
+                                    }
+
+                                    Text {
+                                        text: "Min Target"
+                                        font.family: basicFont.name
+                                        font.pointSize: 10
+                                    }
+                                    SpinBox {
+                                        id: spinPanMinTarget
+                                        value: sliderPanMin
+                                        maximumValue: 9000
+                                        minimumValue: 0
+                                    }
+
+                                    Text {
+                                        text: "Max Target"
+                                        font.family: basicFont.name
+                                        font.pointSize: 10
+                                    }
+                                    SpinBox {
+                                        id: spinPanMaxTarget
+                                        value: sliderPanMax
+                                        maximumValue: 9000
+                                        minimumValue: 0
+                                    }
+
+                                }
 
                                 Text {
-                                    text: "Speed"
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    text: "Apply"
                                     font.family: basicFont.name
-                                    font.pointSize: 10
-                                }
-                                SpinBox {
-                                    id: spinPanSpeed
-                                    maximumValue: 400
-                                    minimumValue: 0
+                                    font.pointSize: 15
+                                    color: "#0E6EB8"
 
-                                }
+                                    MouseArea{
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            console.log("Apply Pan Settings")
 
-                                Text {
-                                    text: "Acceleration"
-                                    font.family: basicFont.name
-                                    font.pointSize: 10
-                                }
-                                SpinBox {
-                                    id: spinPanAcc
-                                    maximumValue: 400
-                                    minimumValue: 0
+                                            sliderPanMax = spinPanMaxTarget.value
+                                            sliderPanMin = spinPanMinTarget.value                                            
 
-                                }
+                                            console.log("panSpeed", panSpeed, spinPanSpeed.value)
+                                            if (spinPanSpeed.value != panSpeed) {
+                                                panSpeed = spinPanSpeed.value
+                                                glue.setPanSpeed(panSpeed)
+                                            }
 
-                                Text {
-                                    text: "Min Target"
-                                    font.family: basicFont.name
-                                    font.pointSize: 10
+                                            console.log("panAcc", panAcc, spinPanAcc.value)
+                                            if (spinPanAcc.value != panAcc) {
+                                                panAcc = spinPanAcc.value
+                                                glue.setPanAcceleration(panAcc)
+                                            }
+                                        }
+                                    }
                                 }
-                                SpinBox {
-                                    id: spinPanMinTarget
-                                    value: 4000
-                                    maximumValue: 9000
-                                    minimumValue: 0
-                                }
-
-                                Text {
-                                    text: "Max Target"
-                                    font.family: basicFont.name
-                                    font.pointSize: 10
-                                }
-                                SpinBox {
-                                    id: spinPanMaxTarget
-                                    value: 8000
-                                    maximumValue: 9000
-                                    minimumValue: 0
-                                }
-
                             }
                         }
                     }

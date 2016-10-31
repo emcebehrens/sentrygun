@@ -4,6 +4,9 @@
 #include <QThread>
 #include <QStringList>
 #include <QtSerialPort/QSerialPort>
+#include <QTimer>
+#include <QQueue>
+#include <QMutex>
 
 class PanTiltManagerThread : public QThread
 {
@@ -24,52 +27,51 @@ public:
     void init();
     void tilt(unsigned short target);
     void pan(unsigned short target);
+    void tiltSpeed(unsigned short speed);
+    void panSpeed(unsigned short speed);
+    void tiltAcceleration(unsigned short acc);
+    void panAcceleration(unsigned short acc);
 
-    void doDemoPan();
-    //void doDemoTilt();
-
-    void maestroGetPosition();
-    void maestroSetTarget(unsigned short target);
-    void maestroSetSpeed(unsigned short speed);
 signals:
     void sig_openDone(bool);
-    void sig_newPosition(int);
+    void sig_newTiltPosistion(int);
+    void sig_newPanPosistion(int);
     void sig_terminated();
+    void sig_cancelTimer();
+    void sig_startTimer();
 
+private slots:
+    void slot_myTimerTimeout();
+    void slot_havePosition(unsigned char channel, bool result, int posistion);
 private:
     enum operation_
-    {
-        op_none,
-        op_open,
-        op_close,
+    {        
+        op_open,       
         op_init,
         op_tilt,
         op_pan,
-        op_maestroGetPosition,
-        op_maestroGoHome,
-        op_maestroSetTarget,
-        op_maestroSetSpeed,
-        op_demoPan
+        op_tiltSpeed,
+        op_panSpeed,
+        op_tiltAcc,
+        op_panAcc,        
     };
-
-    operation_   currentOperation_;
 
     bool threadActive_;
     QString serialPortName_;
-    unsigned short targetVal_;
+    unsigned short targetVal_;    
+    bool myTimerTriggered_;
+    bool getNextPosition_;
 
-    //void task_closeCommsChannel(QSerialPort *serialPortPtr);
-    //bool task_openCommPort(QSerialPort *serialPortPtr, QString serialPortName);
-    //int task_maestroGetPosition(QSerialPort *serialPortPtr);
-   /* bool transact(QSerialPort *serialPortPtr,
-                  const char *sendDataPtr,
-                  int sendSize,
-                  bool getResponse,
-                  int *responsePtr);*/
-    //void task_maestroGoHome(QSerialPort *serialPortPtr);
-    //void task_maestroSetTarget(QSerialPort *serialPortPtr, unsigned short target);
-    //void task_maestroSetSpeed(QSerialPort *serialPortPtr, unsigned short speed);
-    void waitForPosition(QSerialPort *serialPortPtr, int finalPos);
+    bool portOpened_;
+    bool closePort_;
+
+    struct queueStruct {
+        operation_ op;
+        unsigned short val;
+    };
+
+    QQueue<queueStruct> msgQueue_;
+    QMutex myMutex_;    
 };
 
 #endif // PANTILTMANAGERTHREAD_H

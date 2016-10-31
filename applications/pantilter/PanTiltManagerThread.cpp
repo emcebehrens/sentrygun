@@ -2,20 +2,23 @@
 #include <QTime>
 #include <QDebug>
 #include "ServoController.h"
+#include <QCoreApplication>
 
 PanTiltManagerThread::PanTiltManagerThread()
-{    
+{
     qDebug() << "PanTiltManagerThread Constructor thread ID:" << QThread::currentThreadId();
 
-    threadActive_ = false;
-    currentOperation_ = op_none;
+    threadActive_ = false;   
+    portOpened_ = false;
+    closePort_ = false;
+    myTimerTriggered_ = false;
+    getNextPosition_ = false;
 
     start(NormalPriority);
 }
 
 PanTiltManagerThread::~PanTiltManagerThread()
-{
-    //task_closeCommsChannel();
+{    
 }
 
 void PanTiltManagerThread::exitThread()
@@ -24,84 +27,86 @@ void PanTiltManagerThread::exitThread()
 }
 
 void PanTiltManagerThread::openCommPort(QString serialPortName)
-{
-    if (currentOperation_ == op_none) {
+{    
+    if (!portOpened_) {
+        QMutexLocker locker(&myMutex_);
+
+        portOpened_ = true;
         serialPortName_ = serialPortName;
-        currentOperation_ = op_open;
+        queueStruct request;
+        request.op = op_open;
+        request.val = 0;
+        msgQueue_.enqueue(request);        
     }
 }
 
 void PanTiltManagerThread::closeCommsChannel()
-{
-    if (currentOperation_ == op_none) {
-        currentOperation_ = op_close;
-    }
+{    
+    closePort_ = true;
 }
 
 void PanTiltManagerThread::init()
 {
-    if (currentOperation_ == op_none) {
-        currentOperation_ = op_init;
-    }
+    qDebug() << "PanTiltManagerThread::init";
+    QMutexLocker locker(&myMutex_);
+    queueStruct request;
+    request.op = op_init;
+    request.val = 0;
+    msgQueue_.enqueue(request);
 }
 
 void PanTiltManagerThread::tilt(unsigned short target)
 {
-    if (currentOperation_ == op_none) {
-        currentOperation_ = op_tilt;
-        targetVal_ = target;
-    }
+    QMutexLocker locker(&myMutex_);
+    queueStruct request;
+    request.op = op_tilt;
+    request.val = target;
+    msgQueue_.enqueue(request);    
 }
 
 void PanTiltManagerThread::pan(unsigned short target)
 {
-    if (currentOperation_ == op_none) {
-        currentOperation_ = op_pan;
-        targetVal_ = target;
-    }
+    QMutexLocker locker(&myMutex_);
+    queueStruct request;
+    request.op = op_pan;
+    request.val = target;
+    msgQueue_.enqueue(request);
 }
 
-void PanTiltManagerThread::doDemoPan()
+void PanTiltManagerThread::tiltSpeed(unsigned short speed)
 {
-    if (currentOperation_ == op_none) {
-        currentOperation_ = op_demoPan;
-    }
+    QMutexLocker locker(&myMutex_);
+    queueStruct request;
+    request.op = op_tiltSpeed;
+    request.val = speed;
+    msgQueue_.enqueue(request);    
 }
 
-void PanTiltManagerThread::maestroGetPosition()
+void PanTiltManagerThread::panSpeed(unsigned short speed)
 {
-    if (currentOperation_ == op_none) {
-        currentOperation_ = op_maestroGetPosition;
-    }
+    QMutexLocker locker(&myMutex_);
+    queueStruct request;
+    request.op = op_panSpeed;
+    request.val = speed;
+    msgQueue_.enqueue(request);    
 }
 
-void PanTiltManagerThread::waitForPosition(QSerialPort *serialPortPtr, int finalPos)
+void PanTiltManagerThread::tiltAcceleration(unsigned short acc)
 {
-    /*int currentPos;
-
-    currentPos = task_maestroGetPosition(serialPortPtr);
-
-    while(currentPos != finalPos) {
-        qDebug() << "*";
-        usleep(100);
-        currentPos = task_maestroGetPosition(serialPortPtr);
-    }*/
+    QMutexLocker locker(&myMutex_);
+    queueStruct request;
+    request.op = op_tiltAcc;
+    request.val = acc;
+    msgQueue_.enqueue(request);    
 }
 
-void PanTiltManagerThread::maestroSetTarget(unsigned short target)
+void PanTiltManagerThread::panAcceleration(unsigned short acc)
 {
-    if (currentOperation_ == op_none) {
-        currentOperation_ = op_maestroSetTarget;
-        targetVal_ = target;
-    }
-}
-
-void PanTiltManagerThread::maestroSetSpeed(unsigned short speed)
-{
-    if (currentOperation_ == op_none) {
-        currentOperation_ = op_maestroSetSpeed;
-        targetVal_ = speed;
-    }
+    QMutexLocker locker(&myMutex_);
+    queueStruct request;
+    request.op = op_tiltAcc;
+    request.val = acc;
+    msgQueue_.enqueue(request);    
 }
 
 void PanTiltManagerThread::run()
@@ -111,107 +116,136 @@ void PanTiltManagerThread::run()
     threadActive_ = true;
 
     ServoController maestro;
+    QObject::connect(&maestro,
+                     SIGNAL(sig_havePosition(unsigned char, bool, int)),
+                     this,
+                     SLOT(slot_havePosition(unsigned char, bool, int)));
+
+
+    QTimer  myTimer;
+    QObject::connect(&myTimer,
+                     SIGNAL(timeout()),
+                     this,
+                     SLOT(slot_myTimerTimeout()));
+    myTimer.setSingleShot(true);
 
     while(threadActive_) {
 
-        switch (currentOperation_) {
-            case op_open:
-            {
-                bool ret = maestro.openCommPort(serialPortName_);
-                emit sig_openDone(ret);
-                currentOperation_ = op_none;
-                break;
+        if (closePort_) {
+            maestro.closeCommsChannel();
+            portOpened_ = false;
+            threadActive_ = false;
+            break;
+        }
+
+
+        if(!msgQueue_.isEmpty()) {
+            if (myMutex_.tryLock()) {
+                queueStruct firstInQ = msgQueue_.head();
+                switch(firstInQ.op) {
+                    case op_open:
+                    {
+                        bool ret = maestro.openCommPort(serialPortName_);
+                        if (!ret) {
+                            portOpened_ = false;
+                        }
+                        emit sig_openDone(ret);
+                        break;
+                    }
+
+                    case op_init:
+                    {
+                        maestro.setSpeed(0, 0);
+                        maestro.setSpeed(1, 0);
+                        maestro.setAcceleration(0, 0);
+                        maestro.setAcceleration(1, 0);
+                        maestro.setTarget(0, 6000);
+                        maestro.setTarget(1, 6000);
+                        myTimer.start(500);
+                        break;
+                    }
+
+                    case op_tilt:
+                    {
+                        maestro.setTarget(1, firstInQ.val);
+                        break;
+                    }
+
+                    case op_pan:
+                    {
+                        maestro.setTarget(0, firstInQ.val);
+                        break;
+                    }
+
+                    case op_tiltSpeed:
+                    {
+                        maestro.setSpeed(1, firstInQ.val);
+                        break;
+                    }
+
+                    case op_panSpeed:
+                    {
+                        maestro.setSpeed(0, firstInQ.val);
+                        break;
+                    }
+
+                    case op_tiltAcc:
+                    {
+                        maestro.setAcceleration(1, firstInQ.val);
+                        break;
+                    }
+
+                    case op_panAcc:
+                    {
+                        maestro.setAcceleration(0, firstInQ.val);
+                        break;
+                    }
+
+                    default:
+                        break;
+                }// switch
+
+                msgQueue_.dequeue();
+                myMutex_.unlock();
             }
+        }
 
-            case op_close:
-            {
-                maestro.closeCommsChannel();
-                currentOperation_ = op_none;
-                break;
-            }
+        if (myTimerTriggered_) {
+            myTimerTriggered_ = false;
+            maestro.getPosition(0);
+        } else if (getNextPosition_) {
+            getNextPosition_ = false;
+            maestro.getPosition(1);
+            myTimer.start(500);
+        }
 
-            case op_init:
-            {
-                maestro.setTarget(0, 6000);
-                maestro.setTarget(1, 6000);
-                currentOperation_ = op_none;
-                break;
-            }
-
-            case op_tilt:
-            {
-                maestro.setTarget(1, targetVal_);
-                currentOperation_ = op_none;
-                break;
-            }
-
-            case op_pan:
-            {
-                maestro.setTarget(0, targetVal_);
-                currentOperation_ = op_none;
-                break;
-            }
-
-            /*case op_maestroGetPosition:
-            {
-                task_maestroGetPosition(&serialPort);
-                //emit sig_newPosition(ret);
-                currentOperation_ = op_none;
-                break;
-            }
-
-            case op_maestroGoHome:
-            {
-                task_maestroGoHome(&serialPort);
-
-                currentOperation_ = op_none;
-                break;
-            }
-
-            case op_maestroSetTarget:
-            {
-                task_maestroSetTarget(&serialPort, targetVal_);
-
-                currentOperation_ = op_none;
-                break;
-            }
-
-            case op_maestroSetSpeed:
-            {
-                task_maestroSetSpeed(&serialPort, targetVal_);
-
-                currentOperation_ = op_none;
-                break;
-            }
-
-            case op_demoPan:
-            {
-                task_maestroSetTarget(&serialPort, 4000);
-                waitForPosition(&serialPort, 3744);
-
-                task_maestroSetTarget(&serialPort, 8000);
-                waitForPosition(&serialPort, 8000);
-
-                task_maestroSetTarget(&serialPort, 4000);
-                waitForPosition(&serialPort, 3744);
-
-                task_maestroSetTarget(&serialPort, 8000);
-                waitForPosition(&serialPort, 8000);
-
-                currentOperation_ = op_none;
-                break;
-            }*/
-
-            case op_none:
-            default:
-                break;
-        }// switch
-
+        QCoreApplication::processEvents();
         usleep(100);
     }
 
     maestro.closeCommsChannel();
     emit sig_terminated();
     qDebug() << "PanTiltManagerThread terminated";
+}
+
+void PanTiltManagerThread::slot_havePosition(unsigned char channel, bool result, int posistion)
+{
+    //qDebug() << "PanTiltManagerThread slot_havePosition" << channel << result << posistion;
+    if (result) {
+        if (channel == 0) {
+            getNextPosition_ = true;
+            emit sig_newPanPosistion(posistion);
+        } else if (channel == 1) {
+            emit sig_newTiltPosistion(posistion);
+        }
+    } else {
+        qDebug() << "Getting Position of channel" << channel << "FAILED!!";
+    }
+}
+
+void PanTiltManagerThread::slot_myTimerTimeout()
+{
+    //qDebug() << "PanTiltManagerThread slot_myTimerTimeout";
+    myTimerTriggered_ = true;
 }
 

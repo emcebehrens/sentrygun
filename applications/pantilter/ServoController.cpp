@@ -32,16 +32,20 @@ void ServoController::closeCommsChannel()
     qDebug() << "ServoController::closeCommsChannel";
 }
 
-void ServoController::getPosition()
+void ServoController::getPosition(unsigned char channel)
 {
     int position;
-    qDebug() << "ServoController::getPosition";
+    bool res;
+
+    qDebug() << "ServoController::getPosition on channel" << channel;
 
     unsigned char command[2];
     command[0] = 0x90;
-    command[1] = 0x00;
+    command[1] = channel;
 
-    transact(&serialPort_, (const char *)command, sizeof(command), true, &position);
+    res = transact(&serialPort_, (const char *)command, sizeof(command), true, &position);
+
+    emit sig_havePosition(channel, res, position);
 }
 
 void ServoController::setTarget(unsigned char channel, unsigned short target)
@@ -59,6 +63,36 @@ void ServoController::setTarget(unsigned char channel, unsigned short target)
     transact(&serialPort_, (const char *)command, sizeof(command), false, NULL);
 }
 
+void ServoController::setSpeed(unsigned char channel, unsigned short speed)
+{
+    qDebug() << "ServoController::setSpeed" << speed
+             << "on channel" << channel;
+
+    unsigned char command[4];
+
+    command[0] = 0x87;
+    command[1] = channel;
+    command[2] = speed & 0x7F;
+    command[3] = (speed >> 7) & 0x7F;
+
+    transact(&serialPort_, (const char *)command, sizeof(command), false, NULL);
+}
+
+void ServoController::setAcceleration(unsigned char channel, unsigned short accel)
+{
+    qDebug() << "ServoController::setAcceleration" << accel
+             << "on channel" << channel;
+
+    unsigned char command[4];
+
+    command[0] = 0x89;
+    command[1] = channel;
+    command[2] = accel & 0x7F;
+    command[3] = (accel >> 7) & 0x7F;
+
+    transact(&serialPort_, (const char *)command, sizeof(command), false, NULL);
+}
+
 bool ServoController::transact(QSerialPort *serialPortPtr,
                                   const char *sendDataPtr,
                                   int sendSize,
@@ -66,10 +100,10 @@ bool ServoController::transact(QSerialPort *serialPortPtr,
                                   int *responsePtr)
 {
     //qDebug() << command[0] << command[1];
-    qDebug() << "sizeof(command)" << sendSize;
+    //qDebug() << "sizeof(command)" << sendSize;
 
     qint64 ret = serialPortPtr->write(sendDataPtr, sendSize);
-    qDebug() << "write ret = " << ret;
+    //qDebug() << "write ret = " << ret;
     if (serialPortPtr->waitForBytesWritten(1000)) {
 
         if (getResponse) {
@@ -79,16 +113,16 @@ bool ServoController::transact(QSerialPort *serialPortPtr,
                 while (serialPortPtr->waitForReadyRead(10)) {
                     responseData += serialPortPtr->readAll();
                 }
-                qDebug() << "Got" << responseData.length() << "bytes back" << responseData;
+                //qDebug() << "Got" << responseData.length() << "bytes back" << responseData;
                 const char *ptr = responseData.constData();
-                for (int i=0; i < responseData.length(); i++) {
+                /*for (int i=0; i < responseData.length(); i++) {
                     qDebug() << QString("byte %1").arg(ptr[i]);
-                }
+                }*/
 
                 int pos = 0;
                 pos = ptr[0] + (ptr[1] << 8);
                 *responsePtr = pos;
-                qDebug() << QString("pos %1").arg(pos);
+                //qDebug() << QString("pos %1").arg(pos);
 
                 return true;
 

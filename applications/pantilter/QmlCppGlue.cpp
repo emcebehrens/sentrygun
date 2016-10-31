@@ -72,6 +72,34 @@ void QmlCppGlue::setPanTarget(int target)
     }
 }
 
+void QmlCppGlue::setPanSpeed(int speed)
+{
+    if (panTiltManThreadPtr_) {
+        panTiltManThreadPtr_->panSpeed(speed);
+    }
+}
+
+void QmlCppGlue::setTiltSpeed(int speed)
+{
+    if (panTiltManThreadPtr_) {
+        panTiltManThreadPtr_->tiltSpeed(speed);
+    }
+}
+
+void QmlCppGlue::setPanAcceleration(int acc)
+{
+    if (panTiltManThreadPtr_) {
+        panTiltManThreadPtr_->panAcceleration(acc);
+    }
+}
+
+void QmlCppGlue::setTiltAcceleration(int acc)
+{
+    if (panTiltManThreadPtr_) {
+        panTiltManThreadPtr_->tiltAcceleration(acc);
+    }
+}
+
 /*void QmlCppGlue::getPosition()
 {
     if (maestroThreadPtr_) {
@@ -146,6 +174,24 @@ void QmlCppGlue::slot_panTiltManOpenDone(bool success)
     }
 }
 
+void QmlCppGlue::slot_panTiltManTerminated()
+{
+    if (panTiltManThreadPtr_) {
+        delete panTiltManThreadPtr_;
+        panTiltManThreadPtr_ = Q_NULLPTR;
+    }
+}
+
+void QmlCppGlue::slot_newPanPosistion(int pos)
+{
+    emit sig_havePanPosition(pos);
+}
+
+void QmlCppGlue::slot_newTiltPosistion(int pos)
+{
+    emit sig_haveTiltPosition(pos);
+}
+
 void QmlCppGlue::startPanTiltManagerThread()
 {
     if (!panTiltManThreadPtr_) {
@@ -155,5 +201,17 @@ void QmlCppGlue::startPanTiltManagerThread()
                 SIGNAL(sig_openDone(bool)),
                 this,
                 SLOT(slot_panTiltManOpenDone(bool)));
+        connect(panTiltManThreadPtr_,
+                SIGNAL(sig_terminated()),
+                this,
+                SLOT(slot_panTiltManTerminated()));
+        connect(panTiltManThreadPtr_,
+                SIGNAL(sig_newPanPosistion(int)),
+                this,
+                SLOT(slot_newPanPosistion(int)));
+        connect(panTiltManThreadPtr_,
+                SIGNAL(sig_newTiltPosistion(int)),
+                this,
+                SLOT(slot_newTiltPosistion(int)));
     }
 }

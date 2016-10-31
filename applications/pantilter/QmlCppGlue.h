@@ -34,6 +34,10 @@ public:
     // Accessible from QML
     Q_INVOKABLE void setTiltTarget(int target);
     Q_INVOKABLE void setPanTarget(int target);
+    Q_INVOKABLE void setPanSpeed(int speed);
+    Q_INVOKABLE void setTiltSpeed(int speed);
+    Q_INVOKABLE void setPanAcceleration(int acc);
+    Q_INVOKABLE void setTiltAcceleration(int acc);
 
     /*Q_INVOKABLE void getPosition();
     Q_INVOKABLE void goHome();
@@ -45,6 +49,8 @@ signals:
     qreal sig_panSliderValueChanged();
 
     void sig_servoControllerState(int);
+    void sig_havePanPosition(int);
+    void sig_haveTiltPosition(int);
 //signals:
     //void sig_IpAddressesListChanged();
 
@@ -62,6 +68,9 @@ private slots:
     void slot_foundPort(QString port, QString desc);
     void slot_portDisapeared(QString port);
     void slot_panTiltManOpenDone(bool success);
+    void slot_panTiltManTerminated();
+    void slot_newPanPosistion(int pos);
+    void slot_newTiltPosistion(int pos);
 };
 
 
