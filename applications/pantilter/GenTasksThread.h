@@ -3,7 +3,7 @@
 
 #include <QThread>
 #include <QStringList>
-#include "comportscanner.h"
+#include "ComPortScanner.h"
 
 class GenTasksThread : public QThread
 {

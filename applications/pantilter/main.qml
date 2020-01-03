@@ -33,7 +33,7 @@ Window {
         console.log("slot_servoControllerState", state)
 
         if (state) {
-            textControllerState.text = "Meastro Servo Controller is Connected"
+            textControllerState.text = "Maestro Servo Controller is Connected"
             controllerConnected = true
         } else {
             textControllerState.text = "No Maestro USB Servo Controller Found"
@@ -42,12 +42,12 @@ Window {
     }
 
     function slot_havePanPosition(pos) {
-        //console.log("slot_havePanPosition", pos)
+        console.log("slot_havePanPosition", pos)
         sliderPanActualPos.value = pos
     }
 
     function slot_haveTiltPosition(pos) {
-        //console.log("slot_haveTiltPosition", pos)
+        console.log("slot_haveTiltPosition", pos)
         sliderTiltActualPos.value = pos
     }
 
@@ -138,7 +138,7 @@ Window {
                                 anchors.leftMargin: 20
                                 anchors.verticalCenter: parent.verticalCenter
                                 source: "tilt.png"
-                                fillMode: Image.PreserveAspectFit
+                                //fillMode: Image.PreserveAspectFit
                                 sourceSize.width: recTilt.width - 10
                                 sourceSize.height: recTilt.width - 10
                             }
@@ -223,7 +223,7 @@ Window {
                                                     anchors.horizontalCenter: parent.horizontalCenter
                                                     anchors.verticalCenter: parent.verticalCenter
                                                     source: "last.png"
-                                                    fillMode: Image.PreserveAspectFit
+                                                    //fillMode: Image.PreserveAspectFit
                                                     sourceSize.width: parent.width
                                                     sourceSize.height: parent.height
                                                 }
@@ -259,7 +259,7 @@ Window {
                                                     anchors.horizontalCenter: parent.horizontalCenter
                                                     anchors.verticalCenter: parent.verticalCenter
                                                     source: "forward.png"
-                                                    fillMode: Image.PreserveAspectFit
+                                                    //fillMode: Image.PreserveAspectFit
                                                     sourceSize.width: parent.width
                                                     sourceSize.height: parent.height
                                                 }
@@ -294,7 +294,7 @@ Window {
                                                     anchors.horizontalCenter: parent.horizontalCenter
                                                     anchors.verticalCenter: parent.verticalCenter
                                                     source: "home.png"
-                                                    fillMode: Image.PreserveAspectFit
+                                                    //fillMode: Image.PreserveAspectFit
                                                     sourceSize.width: parent.width
                                                     sourceSize.height: parent.height
                                                 }
@@ -523,7 +523,7 @@ Window {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 anchors.top: parent.top
                                 source: "pan.png"
-                                fillMode: Image.PreserveAspectFit
+                                //fillMode: Image.PreserveAspectFit
                                 sourceSize.width: recPan.width - 10
                                 sourceSize.height: recPan.width - 10
                             }

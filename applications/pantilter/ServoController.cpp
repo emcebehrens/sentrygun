@@ -9,6 +9,7 @@ ServoController::ServoController()
 
 bool ServoController::openCommPort(QString serialPortName)
 {
+    serialPortName = "/dev/"+serialPortName;
     serialPort_.setPortName(serialPortName);
 
     /* Choose the baud rate (bits per second).

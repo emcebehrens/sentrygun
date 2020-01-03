@@ -1,4 +1,4 @@
-#include "comportscanner.h"
+#include "ComPortScanner.h"
 #include <QtSerialPort/QSerialPortInfo>
 #include <QDebug>
 
@@ -15,15 +15,19 @@ QStringList ComPortScanner::scanForComPorts()
     myList.clear();
     descriptions_.clear();
 
+    //qDebug() << "d";
+
     foreach (const QSerialPortInfo &info, QSerialPortInfo::availablePorts()) {
-        /*QString s = QObject::tr("Port: ") + info.portName() + "\n"
+        QString s = QObject::tr("Port: ") + info.portName() + "\n"
                     + QObject::tr("Description: ") + info.description() + "\n"
                     + QObject::tr("Manufacturer: ") + info.manufacturer() + "\n"
                     + QObject::tr("Busy: ") + (info.isBusy() ? QObject::tr("Yes") : QObject::tr("No")) + "\n";
-                    */
+        //qDebug() <<  s ;
+
 
         //if (info.description() == "Pololu Micro Maestro 6-Servo Controller TTL Port") {
-        if (info.description() == "Pololu Micro Maestro 6-Servo Controller Command Port") {
+        //if (info.description() == "Pololu Micro Maestro 6-Servo Controller Command Port") {
+        if (info.portName() == "ttyACM0") {
             //qDebug() << "Found a pololu on " << info.portName() << info.description() << info.manufacturer();
             myList.append(info.portName());
             descriptions_.append(info.description());
@@ -44,8 +48,11 @@ bool ComPortScanner::updateAvailableComPortLists(QStringList list,
             qDebug() << "ComPortScanner: Adding " << item << "on my list";
             availablePorts_.append(item);
             availablePortDescriptions_.append(descriptions_[i]);
+        } else {
+            //qDebug() << availablePorts_;
         }
         i++;
+        //qDebug() << "a"<<item;
     }
 
     i = 0;
