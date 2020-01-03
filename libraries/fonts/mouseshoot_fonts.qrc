@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>weblysleekuil.ttf</file>
+        <file>weblysleekuisb.ttf</file>
+    </qresource>
+</RCC>
